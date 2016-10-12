@@ -1,0 +1,23 @@
+module fader #(
+    CHAN = 16 : CHAN >= 1,// channels
+    SPD  = 16 : SPD >= 0, // fade speed
+    WIDTH = 8 : WIDTH >= 1// resolution
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    input times [8],
+    input frame [CHAN],
+    output ts [WIDTH], // for debugging fade value
+    output values [CHAN][WIDTH]
+  ) {
+  
+  counter led_fade(#DIV(SPD), .clk(clk), .rst(rst));
+  sig offset [WIDTH];
+  var i;
+  
+  always {
+    ts = led_fade.value;
+    offset = ((times[0]&1b1)<<8);
+    for (i = 0; i < CHAN; i++) { values[i] = WIDTHx{frame[i]} & (led_fade.value+offset); }
+  }
+}

@@ -1,0 +1,21 @@
+module pwm_leds #(
+    CHAN = 16   : CHAN >= 1,// channels
+    MAXV = 9h110: MAXV >= 1 // max value
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    input values[CHAN][8],
+    output leds[CHAN]
+  ) {
+
+  pwm pwms [CHAN] (#WIDTH($clog2(MAXV)), #TOP(MAXV), .clk(clk), .rst(rst), .update(1));
+  
+  sig v[CHAN][$clog2(MAXV)];
+  var i;
+  
+  always {
+    for (i = 0; i < CHAN; i++) { v[i] = values[i]; }
+    pwms.value = v;
+    leds = pwms.pulse;
+  }
+}

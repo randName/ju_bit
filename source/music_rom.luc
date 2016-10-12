@@ -1,0 +1,27 @@
+module music_rom #(
+    SPD = 24 : SPD >= 0,
+    SNGS = 1 : SNGS >= 0,
+    SONG = 0 : SONG <= SNGS
+  )(
+    input clk, // clock
+    input rst, // reset
+    output times [8],
+    output frame [16]
+  ){
+  
+  const FRAMES = 8;
+  counter rtime (#DIV(SPD), .clk(clk), .rst(rst)); // set music speed
+  sig notes [SNGS][FRAMES][16];
+  
+  always {
+    notes = {{
+      16h500A, 16h0000,
+      16hA005, 16h0000,
+      16h05A0, 16h0000,
+      16h0A50, 16h0000
+    }};
+      
+    times = rtime.value;
+    frame = notes[SONG][rtime.value&(FRAMES-1)];
+  }
+}
