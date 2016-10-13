@@ -5,8 +5,8 @@ module music_rom #(
   )(
     input clk, // clock
     input rst, // reset
-    output offset [8],
-    output frame [16]
+    output frame [16],
+    output ts [8]
   ){
   
   const FRAMES = 8;
@@ -17,11 +17,11 @@ module music_rom #(
     notes = {{
       16h500A, 16h0000,
       16hA005, 16h0000,
-      16h05A0, 16h0000,
-      16h0A50, 16h0000
+      16h05A0, 16hC003,
+      16h0A50, 16h300C
     }};
 
-    offset = ((rtime.value[0]&1b1)<<8);
+    ts = rtime.value;
     frame = notes[SONG][rtime.value&(FRAMES-1)];
   }
 }

@@ -1,0 +1,20 @@
+module scorer #(
+    WIDTH = 2 : WIDTH >= 1// resolution
+  )(
+    input clk, // clock
+    input inp,
+    input value [WIDTH],
+    output score [4][8]
+  ) {
+  
+  .clk(clk) {
+    edge_detector butt;
+    dff sc [4][8];
+  }
+  
+  always {
+    score = sc.q;
+    butt.in = inp;
+    sc.d[value] = sc.q[value] + butt.out;
+  }
+}

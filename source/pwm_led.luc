@@ -1,7 +1,7 @@
 module pwm_led #(
-    MAXV = 9h110: MAXV >= 1, // max value
-    MINV = 9h0: MINV >= 0, // min value
-    WIDTH = 8 : WIDTH >= 1// resolution
+    MAXV = 8hf0: MAXV >= 1,
+    MINV = 8h10: MINV >= 1,
+    WIDTH = 4 : WIDTH >= 1// resolution
   )(
     input clk,  // clock
     input rst,  // reset
@@ -9,10 +9,14 @@ module pwm_led #(
     output led
   ) {
 
-  pwm p (#WIDTH($clog2(MAXV)), #TOP(MAXV), .clk(clk), .rst(rst), .update(1));
-    
+  const SCALE = $clog2(MAXV-MINV)-WIDTH;
+  pwm p (.clk(clk), .rst(rst), .update(1));
+
   always {
-    p.value = value;
+    p.value = 0;
+    if ( value ) {
+      p.value = MINV+(value<<SCALE);
+    }
     led = p.pulse;
   }
 }

@@ -1,17 +1,24 @@
 module fader #(
-    SPD  = 16 : SPD >= 0, // fade speed
-    WIDTH = 8 : WIDTH >= 1// resolution
+    SPD  = 25 : SPD >= 0, // fade speed
+    WIDTH = 4 : WIDTH >= 1// resolution
   )(
-    input clk,  // clock
-    input rst,  // reset
+    input clk, // clock
     input frame,
-    input offset [WIDTH],
+    output score [2],
     output value [WIDTH]
   ) {
   
-  counter led_fade(#DIV(SPD), .clk(clk), .rst(rst));
+  dff up [SPD] (.clk(clk));
   
   always {
-    value = WIDTHx{frame} & (led_fade.value+offset);
+    score = 0;
+    up.d = 0;
+    value = up.q[SPD-1-:WIDTH];
+    if ( frame | |up.q ) {
+      up.d = up.q + 1;
+    }
+    if ( up.q[SPD-1] ) {
+      score = up.q[SPD-2-:$clog2(WIDTH)];
+    }
   }
 }

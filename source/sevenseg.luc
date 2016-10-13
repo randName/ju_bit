@@ -1,0 +1,25 @@
+module sevenseg (
+    input dot,
+    input char[4],
+    output segs[8]
+  ) {
+
+  sig sg[7];
+  
+  always {
+    case (char) {
+      0: sg = 7b0111111;
+      1: sg = 7b0000110;
+      2: sg = 7b1011011;
+      3: sg = 7b1001111;
+      4: sg = 7b1100110;
+      5: sg = 7b1101101;
+      6: sg = 7b1111101;
+      7: sg = 7b0000111;
+      8: sg = 7b1111111;
+      9: sg = 7b1100111;
+      default: sg = 7b0000000;
+    }
+    segs = (~dot)<<8 + sg;
+  }
+}
