@@ -1,0 +1,29 @@
+module test_alu8 (
+    input clk,  // clock
+    input rst,  // reset
+    input op [6],
+    input in [2][8],
+    output d [2][8],
+    output out [8]
+  ) {
+  
+  // generates random numbers periodically
+  .clk(clk) {
+    counter timer (#SIZE(1), #DIV(24), .rst(rst));
+    edge_detector go_next (#RISE(1), #FALL(0), .in(timer.value));
+    pn_gen r (.rst(rst), .seed(32h0), .next(go_next.out));
+  }
+  
+  sig inp [2][8];
+  alu8 alu(.op(op), .a(inp[0]), .b(inp[1]));
+
+  always {
+    inp = in;
+    // if no input, use random numbers as input
+    if ( ! |in ) {
+      inp = {r.num[7:0], r.num[21:14]};
+    }
+    d = inp;
+    out = alu.c;
+  }
+}

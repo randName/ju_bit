@@ -9,25 +9,31 @@ module alu_addr8 (
   ) {
   
   sig t[9]; // for holding sum due to possible overflow
+  sig d[8]; // for calculating z, v, n
   
   always {
-  
-    // add or subtract based on lsb of opcode
-    if ( op[0] ) {
-      t = a - b;
-    } else {
-      t = a + b;
+    // choose arithmetic operation
+    case ( op ) {
+      0:
+        t = a - b;
+      1:
+        t = a + b;
+      2:
+        t = a * b;
+      default:
+        t = 0;
     }
+    d = a - b;
     
     // compresses result into 1 bit with OR, so z is low if any bit is high
-    z = ~(|t[7:0]);
+    z = ~(|d);
     
     // overflow if sign bit of operands are same (XNOR) and sign bit
     // of result is different (XOR) from sign bit of operands
-    v = ( a[7] ~^ b[7] ) & ( t[7] ^ a[7] );
+    v = ( a[7] ~^ b[7] ) & ( d[7] ^ a[7] );
     
     // sign bit
-    n = t[7];
+    n = d[7];
     
     // truncate result
     c = t[7:0];
