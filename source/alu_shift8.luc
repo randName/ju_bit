@@ -13,9 +13,9 @@ module alu_shift8 (
       1:
         c = a >> b;
       2:
-        c = $signed(a) >>> b;
-      3:
         c = $signed(a) <<< b;
+      3:
+        c = $signed(a) >>> b;
       default:
         c = a;        
     }

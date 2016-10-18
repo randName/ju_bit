@@ -8,7 +8,7 @@ module alu_addr8 (
     output c [8]
   ) {
   
-  sig t[9]; // for holding sum due to possible overflow
+  sig t[16];// for holding result due to potential overflow
   sig d[8]; // for calculating z, v, n
   
   always {
@@ -20,6 +20,8 @@ module alu_addr8 (
         t = a + b;
       2:
         t = a * b;
+      4:
+        t = (a*b)>>8;
       default:
         t = 0;
     }
