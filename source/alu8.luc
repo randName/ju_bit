@@ -1,0 +1,44 @@
+module alu8 (
+    input op [6],
+    input a [8],
+    input b [8],
+    output z,
+    output v,
+    output n,
+    output c [8]
+  ) {
+  
+  .op(op[3:0]) {
+    .a(a), .b(b) {
+      alu_addr8 adder;
+      alu_shift8 shifter;
+      alu_cmp8 comparator;
+    }
+    alu_bitw bitwise [8];
+  }
+  
+  always {
+    // defined separately due to port size
+    bitwise.a = a;
+    bitwise.b = b;
+    
+    // choose output based on msbs of opcode
+    case ( op[5:4] ) {
+      0:
+        c = adder.c;
+      1:
+        c = bitwise.c;
+      2:
+        c = shifter.c;
+      3:
+        c = comparator.c;
+      default:
+        c = 0;
+    }
+    
+    // connect z, v, n from adder
+    z = adder.z;
+    v = adder.v;
+    n = adder.n;
+  }
+}

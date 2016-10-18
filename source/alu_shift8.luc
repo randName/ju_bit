@@ -1,0 +1,23 @@
+module alu_shift8 (
+    input op [4],
+    input a [8],
+    input b [8],
+    output c [8]
+  ) {
+
+  always {
+    // choose shift direction and type from opcode
+    case ( op[2:0] ) {
+      0:
+        c = a << b;
+      1:
+        c = a >> b;
+      2:
+        c = a >>> b;
+      3:
+        c = a <<< b;
+      default:
+        c = a;        
+    }
+  }
+}

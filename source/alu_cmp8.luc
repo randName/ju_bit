@@ -1,0 +1,23 @@
+module alu_cmp8 (
+    input op [4],
+    input a [8],
+    input b [8],
+    output c
+  ) {
+
+  sig res [3];
+  sig co [3];
+
+  // since we have comparators in Mojo, we can do without z, v, n
+  always {
+    // invert the lsb of opcode as it is 1 by default for the subtract,
+    // giving us 1 bit to encode greater than comparisons
+    co = c{ op[2:1], ~op[0] };
+
+    // create an array of partial results so that we can choose which we want to use
+    res = c{ a < b, a == b, a > b };    
+    
+    // mask (AND) the results with opcode and reduce with OR to check if any result is true
+    c = |(res & co);
+  }
+}

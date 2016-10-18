@@ -1,0 +1,13 @@
+module alu_bitw (
+    input op [4],
+    input a,
+    input b,
+    output c
+  ) {
+
+  always {
+    // selects bit in opcode corresponding to the combination of a and b
+    // i.e. 0,1 => 1; 1,1 => 3
+    c = op[c{b,a}];
+  }
+}
