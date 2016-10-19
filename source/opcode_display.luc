@@ -1,0 +1,20 @@
+module opcode_display (
+    input clk,  // clock
+    input rst,  // reset
+    input op [6],
+    output sel [4],
+    output seg [8]
+  ) {
+
+  counter d_sel (#SIZE(1), #DIV(16), .clk(clk), .rst(rst));
+  sevenseg disp (.dot(0));
+  
+  always {
+    disp.char = op[3:0];
+    if ( d_sel.value ) {
+      disp.char = op[5:4];
+    }
+    seg = ~disp.segs;
+    sel = ~(4b1<<d_sel.value);
+  }
+}

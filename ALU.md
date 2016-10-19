@@ -1,4 +1,4 @@
-ALU Opcodes
+# ALU Documentation
 
 | ALUFN  | hex  | Operation | Type |
 |--------|------|-----------|------|
@@ -42,6 +42,12 @@ ALU Opcodes
 - Multiplication (MUL, MULH)
 
 ### Bitwise
+
+- AND, NAND
+- OR, NOR
+- XOR, XNOR
+- A, NOTA
+- B, NOTB
 
 ### Shift
 

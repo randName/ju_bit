@@ -1,0 +1,149 @@
+global Op {
+  const ADD   = 6h00;
+  const SUB   = 6h01;
+  const MUL   = 6h02;
+  const MULH  = 6h04;
+  const NOR   = 6h11;
+  const NOTB  = 6h13;
+  const NOTA  = 6h15;
+  const XOR   = 6h16;
+  const NAND  = 6h17;
+  const AND   = 6h18;
+  const XNOR  = 6h19;
+  const A     = 6h1A;
+  const B     = 6h1C;
+  const OR    = 6h1E;
+  const SHL   = 6h20;
+  const SHR   = 6h21;
+  const SLA   = 6h22;
+  const SRA   = 6h23;
+  const CMPGT = 6h30;
+  const CMPGE = 6h32;
+  const CMPEQ = 6h33;
+  const CMPNE = 6h34;
+  const CMPLT = 6h35;
+  const CMPLE = 6h37;
+}
+
+module auto_test_alu8 (
+    input clk,  // clock
+    input rst,  // reset
+    input out [8],
+    output op [6],
+    output in [2][8],
+    output correct
+  ) {
+
+  .clk(clk), .rst(rst) {
+    counter out_timer (#SIZE(2), #DIV(25));
+    counter op_choice (#SIZE(4), #DIV(27));
+  }
+  
+  sig test_cases [4][3][8];
+
+  always {
+    case ( op_choice.value ) {
+      4h0:
+        op = Op.ADD;
+        test_cases = {
+          {8hff,8h01,8h00}, // overflow
+          {8h87,8h21,8ha8},
+          {8h12,8h34,8h46},
+          {8h00,8h00,8h00}  // zeros
+        };
+      4h1:
+        op = Op.SUB;
+        test_cases = {
+          {8h80,8h01,8h7f}, // underflow
+          {8h34,8h12,8h22},
+          {8h12,8h34,8hde}, // negative
+          {8h00,8h00,8h00}  // zeros
+        };
+      4h2:
+        op = Op.AND;
+        test_cases = {
+          {8hca,8hac,8h88},
+          {8hff,8hff,8hff},
+          {8h12,8h34,8h10},
+          {8h00,8h00,8h00}  // zeros
+        };
+      4h3:
+        op = Op.OR;
+        test_cases = {
+          {8hca,8hac,8hee},
+          {8hff,8hff,8hff},
+          {8h12,8h34,8h36},
+          {8h00,8h00,8h00}  // zeros
+        };
+      4h4:
+        op = Op.XOR;
+        test_cases = {
+          {8hca,8hac,8h66},
+          {8hff,8hff,8h00},
+          {8h12,8h34,8h26},
+          {8h00,8h00,8h00}  // zeros
+        };
+      4h5:
+        op = Op.A;
+        test_cases = {
+          {8hca,8hac,8hca},
+          {8hff,8hff,8hff},
+          {8h12,8h34,8h12},
+          {8h00,8h00,8h00}  // zeros
+        };
+      4h6:
+        op = Op.SHL;
+        test_cases = {
+          {8h01,8h08,8h00}, // overflow
+          {8hff,8h04,8hf0},
+          {8h12,8h03,8h90},
+          {8h00,8h00,8h00}  // zeros
+        };
+      4h7:
+        op = Op.SHR;
+        test_cases = {
+          {8h80,8h08,8h00}, // underflow
+          {8hff,8h04,8h0f},
+          {8h12,8h03,8h02},
+          {8h00,8h00,8h00}  // zeros
+        };
+      4h8:
+        op = Op.SRA;
+        test_cases = {
+          {8h00,8h00,8h00},
+          {8hff,8h04,8hff},
+          {8h12,8h03,8h02},
+          {8h00,8h00,8h00}  // zeros
+        };
+      4h9:
+        op = Op.CMPEQ;
+        test_cases = {
+          {8haa,8h55,8h00},
+          {8hff,8hff,8h01},
+          {8h12,8h34,8h00},
+          {8h00,8h00,8h01}  // zeros
+        };
+      4ha:
+        op = Op.CMPLT;
+        test_cases = {
+          {8haa,8h55,8h00},
+          {8hff,8hff,8h00},
+          {8h12,8h34,8h01},
+          {8h00,8h00,8h00}  // zeros
+        };
+      4hb:
+        op = Op.CMPLE;
+        test_cases = {
+          {8haa,8h55,8h00},
+          {8hff,8hff,8h01},
+          {8h12,8h34,8h01},
+          {8h00,8h00,8h01}  // zeros
+        };
+      default:
+        op = Op.ADD;
+        test_cases = 4x{{3x{{8h0}}}};
+    }
+    in = test_cases[out_timer.value][2:1];
+    correct = ( out == test_cases[out_timer.value][0] );
+  }
+}

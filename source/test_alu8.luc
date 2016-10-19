@@ -1,48 +1,25 @@
 module test_alu8 (
     input clk,  // clock
     input rst,  // reset
-    input op [6],
-    input rand [2],
-    input in [2][8],
-    output op_d [8],
-    output op_s [4],
-    output d [2][8],
-    output out [8]
+    input auto [2],
+    input opi [6],
+    input inp [2][8],
+    input out [8],
+    output op [6],
+    output in [2][8],
+    output correct
   ) {
   
-  .clk(clk) {
-    edge_detector go_next (#RISE(1), #FALL(0));
-    .rst(rst) {
-      pn_gen r (.seed(32h0), .next(go_next.out));
-      counter timer (#SIZE(1), #DIV(24));
-      counter d_sel (#SIZE(1), #DIV(16));
-    }
-  }
-  
-  sevenseg disp (.dot(0));
-  sig opc [6], inp [2][8];
-  alu8 alu(.op(opc), .a(inp[1]), .b(inp[0]));
+  auto_test_alu8 autotest(.clk(clk), .rst(rst), .out(out));
   
   always {
-    inp = in;
-    opc = op;  
+    correct = autotest.correct;
+    op = opi;
+    in = inp;
     
-    // generate random numbers on demand or periodically
-    go_next.in = rand[0] | (rand[1] & timer.value);
-    if ( |rand ) {
-      // use random numbers if no input
-      // todo: ensure random opcode is valid (select from list?)
-      if ( ~|op ) opc = r.num[12:7];
-      if ( ~|in ) inp = {r.num[7:0], r.num[21:14]};
+    if ( |auto & ~|inp ) {
+      op = autotest.op;
+      in = autotest.in;
     }
-    
-    out = alu.c;
-    d = inp;
-    disp.char = opc[3:0];
-    if ( d_sel.value ) {
-      disp.char = opc[5:4];
-    }
-    op_d = ~disp.segs;
-    op_s = ~(4b1<<d_sel.value);
   }
 }
