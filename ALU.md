@@ -26,12 +26,11 @@
 | 100011 | 0x23 | SRA       | [SHFT](#shift) |
 |        |      |           |      |
 |        |      |           |      |
-| 110000 | 0x30 | CMPGT*    | [CMPR](#comparison) |
-| 110010 | 0x32 | CMPGE*    | [CMPR](#comparison) |
 | 110011 | 0x33 | CMPEQ     | [CMPR](#comparison) |
-| 110100 | 0x34 | CMPNE*    | [CMPR](#comparison) |
 | 110101 | 0x35 | CMPLT     | [CMPR](#comparison) |
 | 110111 | 0x37 | CMPLE     | [CMPR](#comparison) |
+| 111101 | 0x3d | CMPGT*    | [CMPR](#comparison) |
+| 111111 | 0x3f | CMPGE*    | [CMPR](#comparison) |
 
 (*Additional functionality)
 
@@ -63,4 +62,3 @@
 - Less Than or Equals (LE)
 - Greater Than (GT)
 - Greater Than or Equals (LE)
-- Not Equals (NE)
