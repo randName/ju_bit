@@ -19,20 +19,19 @@ module mojo_top (
   ) {
   
   sig rst;                  // reset signal
-  const BUTTONS = 16;
   
   .clk(clk) {
     // The reset conditioner is used to synchronize the reset signal to the FPGA
     // clock. This ensures the entire FPGA comes out of reset at the same time.
     reset_conditioner reset_cond;
-    fader faders [BUTTONS];
-    scorer score;
-    
     .rst(rst) {
-      music_rom beats;
-      pwm_led lights [BUTTONS];
+      //game game;
+      test_alu8 tester(.auto(c{io_dip[2][7], io_button[1]}), .opi(io_dip[2][5:0]), .inp(io_dip[1:0]));
+      opcode_display op_dis (.good(tester.g), .ds(c{tester.correct,7b0}), .op(tester.op));
     }
   }
+  
+  alu8 alu(.op(tester.op), .a(tester.in[1]), .b(tester.in[0]));
   
   always {
     reset_cond.in = ~rst_n; // input raw inverted reset signal
@@ -47,12 +46,17 @@ module mojo_top (
     io_seg = 8hff;          // turn segments off
     io_sel = 4hf;           // select no digits
 
-    led = beats.ts;
-    faders.frame = beats.frame;
-    lights.value = faders.value;
-    io_led[2:1] = {lights.led[15:8], lights.led[7:0]};
+    // ALU Test
+    tester.out = alu.c;
+    io_seg = op_dis.seg;
+    io_sel = op_dis.sel;
+    led = c{alu.z,alu.v,alu.n,5b0};
+    io_led = {tester.in[1], tester.in[0], alu.c};
     
-    score.inp = io_button[1];
-    score.value = faders.score[0];
+    // Game
+    //game.butts[7:2] = io_dip[0][7:2];
+    //game.butts[1:0] = io_button[1:0];
+    //led = game.ts;
+    //io_led[2:1] = {game.leds[15:8], game.leds[7:0]};
   }
 }
