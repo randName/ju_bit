@@ -1,0 +1,12 @@
+module alu_cmp_zvn (
+    input op [4],
+    input z,
+    input v,
+    input n,
+    output c
+  ) {
+  
+  always {
+    c = |(op[2:1] & c{n^v, z});
+  }
+}

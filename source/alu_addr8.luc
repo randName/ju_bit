@@ -4,35 +4,34 @@ module alu_addr8 (
     input b [8],
     output z,
     output v,
-    output n,    
+    output n,
     output c [8]
   ) {
   
   sig t[16];// for holding result due to potential overflow
   sig d[8]; // for calculating z, v, n
+  sig vd [2];
   
   always {
-    // choose arithmetic operation
-    case ( op ) {
-      0:
-        t = a + b;
-      1:
-        t = $signed(a) - $signed(b);
-      2:
-        t = a * b;
-      4:
-        t = (a*b)>>8;
-      default:
-        t = 0;
+    // add/sub
+    t = a + (b^8x{op[0]}) + op[0];
+    
+    // multiply
+    if ( |op[2:1] ) {
+        t = ( a * b ) >> c{op[2],3b0};
     }
-    d = a - b;
+    
+    // z, v, n always based on difference
+    // but order depends on MSB from cmpr
+    d = (a^8x{op[3]}) + (b^8x{~op[3]}) + 1;
+    vd = c{a[7], ~b[7]}^(2x{op[3]});
     
     // compresses result into 1 bit with OR, so z is low if any bit is high
     z = ~(|d);
     
-    // overflow if sign bit of operands are same (XNOR) and sign bit
-    // of result is different (XOR) from sign bit of operands
-    v = ( a[7] ~^ b[7] ) & ( d[7] ^ a[7] );
+    // overflow if sign bit of operands are same and sign bit
+    // of result is different from sign bit of operands
+    v = ( &vd & ~d[7] ) | ( ~(|vd) & d[7] );
     
     // sign bit
     n = d[7];

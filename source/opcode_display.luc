@@ -2,19 +2,23 @@ module opcode_display (
     input clk,  // clock
     input rst,  // reset
     input op [6],
+    input ds [8],
+    input good [4],
     output sel [4],
     output seg [8]
   ) {
 
-  counter d_sel (#SIZE(1), #DIV(16), .clk(clk), .rst(rst));
-  sevenseg disp (.dot(0));
+  counter d_sel (#SIZE(2), #DIV(17), .clk(clk), .rst(rst));
+  sevenseg disp [3] (.dot(0));
+  
+  sig val [4][8];
   
   always {
-    disp.char = op[3:0];
-    if ( d_sel.value ) {
-      disp.char = op[5:4];
-    }
-    seg = ~disp.segs;
+    disp.char = {good, c{2b0,op[5:4]}, op[3:0]};
+    val[1:0] = disp.segs[1:0];
+    val[2] = ds;
+    val[3] = disp.segs[2];
+    seg = ~val[d_sel.value];
     sel = ~(4b1<<d_sel.value);
   }
 }

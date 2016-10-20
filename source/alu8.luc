@@ -12,9 +12,9 @@ module alu8 (
     .a(a), .b(b) {
       alu_addr8 adder;
       alu_shift8 shifter;
-      alu_cmp8 comparator;
     }
     alu_bitw bitwise [8];
+    alu_cmp_zvn comp (.z(adder.z), .v(adder.v), .n(adder.n));
   }
   
   always {
@@ -31,7 +31,7 @@ module alu8 (
       2:
         c = shifter.c;
       3:
-        c = comparator.c;
+        c = comp.c;
       default:
         c = 0;
     }

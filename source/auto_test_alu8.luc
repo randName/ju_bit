@@ -17,12 +17,11 @@ global Op {
   const SHR   = 6h21;
   const SLA   = 6h22;
   const SRA   = 6h23;
-  const CMPGT = 6h30;
-  const CMPGE = 6h32;
   const CMPEQ = 6h33;
-  const CMPNE = 6h34;
   const CMPLT = 6h35;
   const CMPLE = 6h37;
+  const CMPGT = 6h3d;
+  const CMPGE = 6h3f;
 }
 
 module auto_test_alu8 (
@@ -118,7 +117,7 @@ module auto_test_alu8 (
       4h9:
         op = Op.CMPEQ;
         test_cases = {
-          {8haa,8h55,8h00},
+          {8h66,8h55,8h00},
           {8hff,8hff,8h01},
           {8h12,8h34,8h00},
           {8h00,8h00,8h01}  // zeros
@@ -126,7 +125,7 @@ module auto_test_alu8 (
       4ha:
         op = Op.CMPLT;
         test_cases = {
-          {8haa,8h55,8h00},
+          {8h66,8h55,8h00},
           {8hff,8hff,8h00},
           {8h12,8h34,8h01},
           {8h00,8h00,8h00}  // zeros
@@ -134,7 +133,7 @@ module auto_test_alu8 (
       4hb:
         op = Op.CMPLE;
         test_cases = {
-          {8haa,8h55,8h00},
+          {8h66,8h55,8h00},
           {8hff,8hff,8h01},
           {8h12,8h34,8h01},
           {8h00,8h00,8h01}  // zeros
