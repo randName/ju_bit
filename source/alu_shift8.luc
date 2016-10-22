@@ -4,20 +4,13 @@ module alu_shift8 (
     input b [8],
     output c [8]
   ) {
+  
+  sig result [4][8];
 
   always {
+    result = {$signed(a) >>> b, $signed(a) <<< b, a >> b, a << b};
+    
     // choose shift direction and type from opcode
-    case ( op[2:0] ) {
-      0:
-        c = a << b;
-      1:
-        c = a >> b;
-      2:
-        c = $signed(a) <<< b;
-      3:
-        c = $signed(a) >>> b;
-      default:
-        c = a;        
-    }
+    c = result[op[2:0]];
   }
 }
