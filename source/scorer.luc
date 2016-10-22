@@ -1,20 +1,60 @@
 module scorer #(
+    BUTTONS = 16 : BUTTONS >=1,
+    MAXNT = 8 : MAXNT >= 1,
     WIDTH = 2 : WIDTH >= 1// resolution
   )(
     input clk, // clock
-    input inp,
-    input value [WIDTH],
-    output score [4][8]
+    input rst, // reset
+    input inp [BUTTONS],
+    input note [BUTTONS],
+    input value [BUTTONS][WIDTH],
+    output combo [MAXNT],
+    output notec [MAXNT],
+    output score [4][MAXNT]
   ) {
   
   .clk(clk) {
-    edge_detector butt;
-    dff sc [4][8];
+    edge_detector butt [BUTTONS];
+    edge_detector noteon [BUTTONS];
+    .rst(rst) {
+      dff notes [MAXNT];
+      dff comboc [MAXNT];
+      dff maxcombo [MAXNT];
+      dff pressed [BUTTONS];
+      dff sc [$pow(2,WIDTH)][MAXNT];
+    }
   }
+  
+  var i;
   
   always {
     score = sc.q;
+    notec = notes.q;
+    combo = maxcombo.q;
+    
     butt.in = inp;
-    sc.d[value] = sc.q[value] + butt.out;
+    noteon.in = note;
+    
+    for (i = 0; i < BUTTONS; i++) {
+      // new note
+      if ( noteon.out[i] ) {
+        notes.d = notes.q + 1;
+        pressed.d[i] = 0;
+      }
+      
+      // note playing & first time button pressed
+      if ( note[i] & butt.out[i] & ~pressed.q[i] ) {
+        sc.d[value[i]] = sc.q[value[i]] + 1;
+        pressed.d[i] = 1;
+        
+        comboc.d = 0;
+        if ( comboc.q > maxcombo.q ) {
+          maxcombo.d = comboc.q;
+        }
+        if ( value[i][WIDTH-1] ) {
+          comboc.d = comboc.q + 1;
+        }
+      }
+    }
   }
 }
