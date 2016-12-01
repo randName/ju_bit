@@ -1,0 +1,32 @@
+module millis_counter #(
+    WIDTH  = 20 : WIDTH > 0,
+    PERIOD = 16 : PERIOD > 0
+  ) (
+    input clk,  // clock
+    input rst,  // reset
+    output tick,
+    output step [WIDTH]
+  ) {
+  
+  .clk(clk), .rst(rst) {
+    dff val [WIDTH];
+    dff period [26]; // fit 1 second
+  }
+  
+  const SML = 12hc35; // 1/16 millisecond
+  
+  always {
+    tick = 0;
+    step = val.q;
+    
+    if ( ~|period.q ) {
+      val.d = val.q + 1;
+      tick = 1;
+    }
+    
+    period.d = period.q + 1;
+    if ( period.q == PERIOD*SML ) {
+      period.d = 0;
+    }
+  }
+}
