@@ -1,60 +1,35 @@
 module scorer #(
-    BUTTONS = 16 : BUTTONS >=1,
-    MAXNT = 8 : MAXNT >= 1,
-    WIDTH = 2 : WIDTH >= 1// resolution
+    FADER = 4 : FADER > 0, // fader resoultion
+    WIDTH = 2 : WIDTH > 0  // score size
   )(
     input clk, // clock
     input rst, // reset
-    input inp [BUTTONS],
-    input note [BUTTONS],
-    input value [BUTTONS][WIDTH],
-    output combo [MAXNT],
-    output notec [MAXNT],
-    output score [4][MAXNT]
+    input inp,
+    input note [2],
+    input value [FADER],
+    output hit [2],
+    output score [WIDTH]
   ) {
   
   .clk(clk) {
-    edge_detector butt [BUTTONS];
-    edge_detector noteon [BUTTONS];
-    .rst(rst) {
-      dff notes [MAXNT];
-      dff comboc [MAXNT];
-      dff maxcombo [MAXNT];
-      dff pressed [BUTTONS];
-      dff sc [$pow(2,WIDTH)][MAXNT];
-    }
+    edge_detector butt (#RISE(1), #FALL(0), .in(inp));
+    dff h (.rst(rst));
   }
   
-  var i;
+  sig scores [$pow(2,FADER)][WIDTH];
   
   always {
-    score = sc.q;
-    notec = notes.q;
-    combo = maxcombo.q;
+    scores = {2h1,2h2,2h3,2h3,2h3,2h2,2h2,2h1,2h0,2h0,2h0,2h0,2h0,2h0,2h0,2h0};
+    score = 0;
+    hit = c{h.q,butt.out};
     
-    butt.in = inp;
-    noteon.in = note;
+    if ( note == 2 ) {
+      h.d = 0;
+    }
     
-    for (i = 0; i < BUTTONS; i++) {
-      // new note
-      if ( noteon.out[i] ) {
-        notes.d = notes.q + 1;
-        pressed.d[i] = 0;
-      }
-      
-      // note playing & first time button pressed
-      if ( note[i] & butt.out[i] & ~pressed.q[i] ) {
-        sc.d[value[i]] = sc.q[value[i]] + 1;
-        pressed.d[i] = 1;
-        
-        comboc.d = 0;
-        if ( comboc.q > maxcombo.q ) {
-          maxcombo.d = comboc.q;
-        }
-        if ( value[i][WIDTH-1] ) {
-          comboc.d = comboc.q + 1;
-        }
-      }
+    if ( ~h.q & |note & butt.out ) {
+      score = scores[value];
+      h.d = 1;
     }
   }
 }

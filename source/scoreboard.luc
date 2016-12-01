@@ -1,0 +1,58 @@
+module scoreboard #(
+    BUTTONS = 16 : BUTTONS > 0,
+    MAXNT = 8 : MAXNT > 0,
+    WIDTH = 2 : WIDTH > 0  // score size
+  )(
+    input clk, // clock
+    input rst, // reset
+    input scores [BUTTONS][WIDTH],
+    input note [BUTTONS][2],
+    input hit [BUTTONS][2],
+    output combo [MAXNT],
+    output notec [MAXNT],
+    output score [$pow(2,WIDTH)][MAXNT]
+  ) {
+  
+  .clk(clk), .rst(rst) {
+    dff notes [MAXNT];
+    dff comboc [MAXNT];
+    dff maxcombo [MAXNT];
+    dff sc [$pow(2,WIDTH)][MAXNT];
+  }
+  
+  var i;
+  
+  always {
+    score = sc.q;
+    notec = notes.q;
+    combo = maxcombo.q;
+    
+    // new combo record
+    if ( comboc.q > maxcombo.q ) {
+      maxcombo.d = comboc.q;
+    }
+    
+    for (i = 0; i < BUTTONS; i++) {
+      if ( note[i] == 1 ) {
+        notes.d = notes.q + 1;
+      }
+      
+      if ( hit[i] == 1 & |note[i] ) {
+        // accumulate on register
+        sc.d[scores[i]] = sc.q[scores[i]] + 1;
+        
+        // continue combo if good timing
+        if ( scores[i][WIDTH-1] ) {
+          comboc.d = comboc.q + 1;
+        } else {
+          comboc.d = 0;
+        }
+      }
+      
+      // missed
+      if ( note[i] == 2 & ~hit[i][1] ) {
+        comboc.d = 0;
+      }
+    }
+  }
+}
