@@ -1,34 +1,25 @@
 module fader #(
-    SIZE =  2 : SIZE >= 0, // score resolution
-    SPD  = 25 : SPD  >= 0, // fade speed
-    WIDTH = 4 : WIDTH >= 1 // fader resolution
+    SPD  = 25 : SPD   > 0,
+    WIDTH = 4 : WIDTH > 0
   )(
     input clk, // clock
     input frame,
-    output note,
-    output score [SIZE],
+    output status [2],
     output fader [WIDTH]
   ) {
   
   dff up [SPD] (.clk(clk));
-  sig scores [$pow(2,WIDTH)][SIZE];
-  sig values [$pow(2,WIDTH)][WIDTH];
-  
+
   always {
     up.d = 0;
-    note = 0;
+    status = 0;
     
     // start fader and sustain
     if ( frame | |up.q ) {
       up.d = up.q + 1;
-      note = 1;
+      status = ~c{frame,&up.q};
     }
     
-    // nonlinear brightness and score values
-    values = {4h8,4ha,4hc,4hd,4he,4hf,4hf,4he,4hd,4hc,4ha,4h8,4h6,4h4,4h2,4h0};
-    scores = {2h1,2h1,2h2,2h2,2h3,2h3,2h3,2h3,2h2,2h2,2h1,2h1,2h0,2h0,2h0,2h0};
-
-    fader = values[up.q[SPD-1-:WIDTH]];
-    score = scores[up.q[SPD-1-:WIDTH]];
+    fader = up.q[SPD-1-:WIDTH];
   }
 }
