@@ -1,0 +1,51 @@
+module light #(
+    SPD = 24: SPD > 0,
+    SCORE = 2 : SCORE > 0, // score resolution
+    WIDTH = 4 : WIDTH > 0, // fader resolution
+    CHANNELS = 3: CHANNELS > 0
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    input fader [WIDTH],
+    input score [SCORE],
+    output lights [CHANNELS*WIDTH]
+  ) {
+  
+  .clk(clk), .rst(rst) {
+    dff up [SPD];
+    dff sc [SCORE];
+  }
+  
+  sig secc [WIDTH];
+  sig ftrs [WIDTH];
+  sig chans [CHANNELS][WIDTH];
+  sig fval [$pow(2,WIDTH)][WIDTH];
+  sig lsel [$pow(2,SCORE)][CHANNELS];
+  var i;
+  
+  always {
+    secc = WIDTHx{1b0};
+    chans = CHANNELSx{{WIDTHx{0}}};
+    lsel = {3b010,3b011,3b001,3b100};
+    fval = {4h8,4ha,4hc,4he,4hf,4hf,4he,4hc,4ha,4h8,4h6,4h4,4h3,4h2,4h1,4h0};
+    
+    // hold color if scoring
+    if ( |score ) sc.d = score;
+    
+    if ( |sc.q ) {
+      for (i = 0; i < CHANNELS; i++) {
+        chans[i][WIDTH-1] = lsel[sc.q][i];
+      }
+      up.d = up.q + 1;
+      if ( &up.q ) sc.d = 0;
+    } else {
+      ftrs = fval[fader];
+      secc[WIDTH-2-:2] = 2x{&ftrs[WIDTH-1:1]} & c{1b1,ftrs[0]}; // white near end
+      chans = {ftrs,secc,secc};
+    }
+    
+    for (i = 0; i < CHANNELS; i++) {
+      lights[i*WIDTH+:WIDTH] = chans[i];
+    }
+  }
+}

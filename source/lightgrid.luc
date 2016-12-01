@@ -1,0 +1,32 @@
+module lightgrid #(
+    LIGHTS = 16 : LIGHTS > 0,
+    BLOCK = 4 : BLOCK > 0,
+    WIDTH = 4 : WIDTH > 0,
+    CHANNELS = 3 : CHANNELS > 0
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    input vals [LIGHTS][CHANNELS*WIDTH],
+    output pulse [CHANNELS][BLOCK],
+    output bsel [$clog2(LIGHTS/BLOCK)]
+  ) {
+  
+  const BLOCKS = LIGHTS/BLOCK;
+  
+  .clk(clk), .rst(rst) {
+    pwm led [BLOCK][CHANNELS] (#WIDTH(WIDTH), .update(1));
+    counter b_sel (#SIZE($clog2(BLOCKS)), #TOP(BLOCKS), #DIV(16));
+  }
+  
+  var i, j;
+  
+  always {
+    for (i = 0; i < BLOCK; i++) {
+      for (j = 0; j < CHANNELS; j++) {
+        led.value[i][j] = vals[BLOCKS*b_sel.value+i][j*WIDTH+:WIDTH];
+        pulse[j][i] = led.pulse[i][j];
+      }
+    }
+    bsel = b_sel.value;
+  }
+}

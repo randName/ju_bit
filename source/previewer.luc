@@ -1,0 +1,22 @@
+module previewer #(
+    WIDTH = 4 : WIDTH > 0
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    input frame,
+    output out [WIDTH],
+    output done
+  ) {
+  
+  const J = 7;
+  counter jiggle (#DIV(19), .clk(clk), .rst(rst));
+  
+  always {
+    out = 0;
+    done = &jiggle.value;
+    
+    if ( frame & ~jiggle.value[J] ) {
+      out = c{jiggle.value[J-3-:WIDTH-1]^((WIDTH-1)x{jiggle.value[J-2]})};
+    }
+  }
+}
