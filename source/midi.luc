@@ -1,0 +1,35 @@
+module midi #(
+    NS = 4,
+    OT = 3
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    input value [8],
+    output note [NS],
+    output octave [OT]
+  ) {
+  
+  .clk(clk), .rst(rst) {
+    dff nte [NS], otv [OT];
+  }
+  
+  const OCTAVES = 6;
+  const NOTES = 12;
+  var i;
+  
+  always {
+    note = nte.q;
+    octave = otv.q;
+    
+    if ( ~&value ) {
+      nte.d = 0;
+      otv.d = 0;
+      for (i = 0; i < OCTAVES; i++) {
+        if ( value > i*NOTES ) {
+          nte.d = value - i*NOTES;
+          otv.d = OCTAVES - i;
+        }
+      }
+    }
+  }
+}

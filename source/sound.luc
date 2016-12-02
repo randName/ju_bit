@@ -1,0 +1,25 @@
+module sound #(
+    CHANNELS = 2 : CHANNELS > 0
+  ) (
+    input clk,  // clock
+    input rst,  // reset
+    input notes [CHANNELS][8],
+    input notetype [4],
+    output pulse
+  ) {
+  
+  .clk(clk), .rst(rst) {
+    counter k (#SIZE($clog2(CHANNELS)), #TOP(CHANNELS), #DIV(20));
+    midi midi [CHANNELS];
+    tone t [CHANNELS] (.type(notetype));
+    pwm b [CHANNELS] (.update(1));
+  }
+  
+  always {
+    midi.value = notes;
+    t.note = midi.note;
+    t.octave = midi.octave;
+    b.value = t.value;
+    pulse = b.pulse[k.value];
+  }
+}

@@ -1,0 +1,52 @@
+module tone #(
+    WIDTH = 8 : WIDTH > 0
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    input type [4],
+    input note [4],
+    input octave [3],
+    output value [WIDTH]
+  ) {
+  
+  const TIMER = 25;
+  dff upn [TIMER] (.clk(clk), .rst(rst));
+  sig notev [12], s [WIDTH];
+  sine sin (.in(s));
+  
+  always {
+    case ( note ) {
+       1: notev = 12h839; // G7
+       2: notev = 12h8B6; // G#7
+       3: notev = 12h93A; // A7
+       4: notev = 12h9C7; // A#7
+       5: notev = 12hA02; // B7
+       6: notev = 12hAF9; // C8
+       7: notev = 12hBA0; // C#8
+       8: notev = 12hC52; // D8
+       9: notev = 12hD0C; // D#8
+      10: notev = 12hDD4; // E8
+      11: notev = 12hEA6; // F8
+      12: notev = 12hF86; // F#8
+      default: notev = 0;
+    }
+    
+    if ( notev ) {
+      upn.d = upn.q + ( notev >> octave );
+      s = upn.q[TIMER-1-:WIDTH];
+      case ( type[2:0] ) {
+        1: value = WIDTHx{ s < 8h20 }; // 12.5%
+        2: value = WIDTHx{ s < 8h40 }; // 25%
+        3: value = WIDTHx{ s < 8h80 }; // 50%
+        4: value = WIDTHx{ s < 8hc0 }; // 75%
+        5: value = c{s[WIDTH-2:0]^((WIDTH-1)x{s[WIDTH-1]}),1}; // triangle
+        6: value = s; // sawtooth
+        7: value = sin.out;
+        default: value = c{1,(WIDTH-1)x{0}};
+      }
+    } else {
+      upn.d = 0;
+      value = c{1,(WIDTH-1)x{0}};
+    }
+  }
+}
