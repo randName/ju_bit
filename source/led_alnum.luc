@@ -1,0 +1,97 @@
+module led_alnum #(
+    CHARS = 4 : CHARS > 0
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    input iok,
+    input segments [CHARS][15],
+    output cmd [2],
+    output data [8]
+  ) {
+  
+  .clk(clk), .rst(rst) {
+    dff w, ptr [4], d [CHARS][15];
+    fsm state = {INIT, ADDR, CMD, WRITE, IDLE};
+    fsm command = {NONE, OSCIL, BLINK, BRIGHT};    
+  }
+  
+  sig segs [15];
+  
+  always {
+    cmd = 0;
+    data = bzzzzzzzz;
+
+    case ( state.q ) {
+      state.INIT:   
+        cmd = 1;
+        state.d = state.ADDR;
+        command.d = command.OSCIL;     
+       
+      state.CMD:
+        cmd = 3;
+        case ( command.q ) {
+          command.OSCIL:
+            data = 8h21;
+          command.BLINK:
+            data = 8h81;
+          command.BRIGHT:
+            data = 8he0 | 8hf;
+        }
+        if ( iok ) {
+          cmd = 2;
+          case ( command.q ) {
+            command.OSCIL:
+              command.d = command.BLINK;
+            command.BLINK:
+              command.d = command.BRIGHT;
+            command.BRIGHT:
+              command.d = command.NONE;
+            default:
+              command.d = command.NONE;
+          }
+          state.d = state.IDLE;
+        }
+        
+      state.ADDR:
+        cmd = 3;
+        data = 8he0;
+        if ( iok ) {
+          if ( command.q == command.NONE ) {
+            state.d = state.WRITE;
+            w.d = 1;
+          } else {
+            state.d = state.CMD;
+          }
+        }
+      
+      state.WRITE:
+        cmd = 3;
+        data = 8h0;
+        if ( ~ptr.q[3] & ~w.q ) {
+          segs = d.q[ptr.q[2:1]];
+          if ( ptr.q[0] ) {
+            data = segs[14:8];
+          } else {
+            data = segs[7:0];
+          }
+        }
+        
+        if ( iok ) {
+          if ( w.q ) {
+            w.d = 0;
+          } else {
+            ptr.d = ptr.q + 1;
+          }
+          if ( &ptr.q ) {
+            cmd = 2;
+            state.d = state.IDLE;
+          }
+        }
+
+      default:
+        d.d = segments;
+        cmd = 1;
+        state.d = state.ADDR;
+    }
+  }
+}

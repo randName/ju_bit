@@ -1,0 +1,29 @@
+module idler #(
+    BUTTONS = 16 : BUTTONS > 0,
+    MAX_LIGHTS = 4
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    output frame [BUTTONS]
+  ) {
+  
+  const ID = $clog2(BUTTONS);
+
+  .clk(clk) {
+    .rst(rst) {
+      counter next (#DIV(18));
+      pn_gen rngesus (.seed(32h0));
+    }
+    edge_detector n (#RISE(1), #FALL(0), .in(&next.value));
+  }
+  
+  var i;
+  
+  always {
+    frame = 0;
+    rngesus.next = n.out;
+    for (i = 0; i < MAX_LIGHTS; i++) {
+      frame[rngesus.num[i*ID+:ID]] = n.out & rngesus.num[31-i];
+    }
+  }
+}
