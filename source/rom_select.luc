@@ -1,0 +1,32 @@
+module rom_select #(
+    SONGS =  2 : SONGS > 0,
+    TIMEW = 20 : TIMEW > 10,
+    BUTTONS = 16 : BUTTONS > 0,
+    CHANNELS = 4 : CHANNELS > 0
+  ) (
+    input choice [$clog2(SONGS)],
+    input step [TIMEW],
+    output done,
+    output frame [BUTTONS],
+    output note [CHANNELS][8]
+  ) {
+  
+  .step(step) {
+    rom_template rm_blank;
+    rom_tetris rm_tetris;
+  }
+  
+  always {
+    case ( choice ) {
+      1:
+        done = rm_tetris.done;
+        note[2:0] = rm_tetris.note;
+        note[3] = rm_tetris.note[2];
+        frame = rm_tetris.frame;
+      default:
+        done = rm_blank.done;
+        note = rm_blank.note;
+        frame = rm_blank.frame;
+    }
+  }
+}
