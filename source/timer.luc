@@ -1,0 +1,17 @@
+module timer #(
+    SPD = 20 : SPD > 0
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    output out
+  ) {
+  
+  .clk(clk) {
+    counter t (#DIV(SPD), .rst(rst));
+    edge_detector o (#RISE(1), #FALL(0), .in(&t.value));
+  }
+  
+  always {
+    out = o.out;
+  }
+}

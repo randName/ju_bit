@@ -10,13 +10,13 @@
     <src>midi.luc</src>
     <src>scoreboard.luc</src>
     <src>rom_template.luc</src>
-    <src>opcode_display.luc</src>
     <src>led_alnum.luc</src>
     <src>sound.luc</src>
     <src>fader.luc</src>
     <src>menu.luc</src>
     <src>sevenseg.luc</src>
     <src>lightgrid.luc</src>
+    <src>timer.luc</src>
     <src>tone.luc</src>
     <src>previewer.luc</src>
     <src>showscore.luc</src>
