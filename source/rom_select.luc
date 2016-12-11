@@ -20,8 +20,7 @@ module rom_select #(
     case ( choice ) {
       1:
         done = rm_tetris.done;
-        note[2:0] = rm_tetris.note;
-        note[3] = rm_tetris.note[2];
+        note = {rm_tetris.note[2],rm_tetris.note[1],rm_tetris.note[2],rm_tetris.note[0]};
         frame = rm_tetris.frame;
       default:
         done = rm_blank.done;
