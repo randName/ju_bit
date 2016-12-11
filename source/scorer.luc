@@ -4,30 +4,26 @@ module scorer #(
   )(
     input clk, // clock
     input rst, // reset
-    input inp,
+    input butt,
     input note [2],
     input value [FADER],
     output hit [2],
     output score [WIDTH]
   ) {
   
-  .clk(clk) {
-    edge_detector butt (#RISE(1), #FALL(0), .in(inp));
-    dff h (.rst(rst));
-  }
-  
+  dff h (.rst(rst), .clk(clk));
   sig scores [$pow(2,FADER)][WIDTH];
   
   always {
     scores = {2h1,2h2,2h3,2h3,2h3,2h2,2h2,2h1,2h0,2h0,2h0,2h0,2h0,2h0,2h0,2h0};
     score = 0;
-    hit = c{h.q,butt.out};
+    hit = c{h.q,butt};
     
     if ( note == 2 ) {
       h.d = 0;
     }
     
-    if ( ~h.q & |note & butt.out ) {
+    if ( ~h.q & |note & butt ) {
       score = scores[value];
       h.d = 1;
     }
