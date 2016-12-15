@@ -1,0 +1,142 @@
+module game #(
+    BUTTONS = 16 : BUTTONS > 0,
+    SONGS =  12 : SONGS > 0,
+    TIMEW = 20 : TIMEW > 10,
+    LWIDTH = 4 : LWIDTH > 0,
+    COLORS = 3 : COLORS > 0,
+    AUDIOC = 4 : AUDIOC > 0,
+    AWIDTH = 8 : AWIDTH > 0,
+    ALNUM = 16 : ALNUM > 0,
+    MAXNT = 8 : MAXNT > 0
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    input toffset [4],
+    input butts [BUTTONS],
+    output ts [TIMEW],
+    output debug [8],
+    output state [3],
+    output alnum [ALNUM][15],
+    output combo [MAXNT],
+    output audio [AUDIOC][AWIDTH],
+    output display [BUTTONS][COLORS*LWIDTH]
+  ) {
+  
+  .clk(clk) {
+    millis_counter dur;
+    dff songsel [$clog2(SONGS)];
+    button_conditioner butt_cond [BUTTONS];
+    edge_detector butt [BUTTONS] (#RISE(1), #FALL(0));
+    menu menu;
+    previewer preview [BUTTONS];
+    fader faders [BUTTONS] (#WIDTH(LWIDTH));
+    scoreboard score (#BUTTONS(BUTTONS), #MAXNT(MAXNT));
+    showscore showscore (.scores(score.score));
+    .rst(rst) {
+      fsm gstate = {IDLE, MENU, PREVIEW, PLAYING, SCORING};
+      light lights [BUTTONS];
+      scorer scorers [BUTTONS];
+      idler idle (#BUTTONS(BUTTONS));
+    }
+  }
+  
+  //fourteenseg segdisp [16] (.dot(0));
+  
+  .choice(songsel.q) {
+    rom_select song;
+    rom_select songlight (.step(dur.step));
+  }
+  
+  always {
+    ts = 0;
+    debug = 0;
+    state = gstate.q;
+    
+    dur.rst = 1;
+    song.step = dur.step - toffset*50;
+    
+    butt_cond.in = butts;
+    butt.in = butt_cond.out;
+    
+    menu.rst = rst;
+    menu.ok = butt.out[0];
+    menu.choice = butt.out[15:4];
+    
+    preview.rst = rst;
+    preview.frame = songlight.frame;
+    faders.frame = songlight.frame;
+    
+    scorers.butt = butt.out;
+    scorers.note = faders.status;
+    scorers.value = faders.fader;
+    
+    lights.fader = faders.fader;
+    lights.score = scorers.score;
+    
+    score.rst = rst;
+    score.hit = scorers.hit;
+    score.note = faders.status;
+    score.scores = scorers.score;
+    combo = score.combo;
+    
+    showscore.rst = rst;
+    
+    //segdisp.num = 16x{{4hf}};
+    //segdisp.char = 16x{{8h0}};
+    
+    display = lights.lights;
+    alnum = ALNUMx{{15h0}};
+    audio = AUDIOCx{{AWIDTHx{0}}};
+    
+    case ( gstate.q ) {
+      gstate.IDLE:
+        faders.frame = butt.out | idle.frame;
+        alnum[7:0] = idle.alnum;
+        
+        if ( |butt.out ) {
+          gstate.d = gstate.MENU;
+          menu.rst = 1;
+        }
+      
+      gstate.MENU:
+        ts = menu.ts;
+        display = menu.lights;
+        alnum = menu.alnum;
+        
+        if ( menu.done ) {
+          gstate.d = gstate.PREVIEW;
+          songsel.d = menu.song;
+          score.rst = 1;
+          preview.rst = BUTTONSx{1b1};
+        } else if ( menu.timeout ) {
+          gstate.d = gstate.IDLE;
+        }
+      
+      gstate.PREVIEW:
+        lights.fader = preview.out;
+        //segdisp.char = $reverse(" Ready? ARE YOU ");
+        //alnum = segdisp.segs;
+        
+        if ( preview.done ) {
+          gstate.d = gstate.PLAYING;
+          dur.rst = 0;
+        }
+      
+      gstate.PLAYING:
+        dur.rst = 0;
+        ts = dur.step;
+        audio = song.note;
+
+        if ( song.done ) {
+          gstate.d = gstate.SCORING;
+          showscore.rst = 1;
+        }
+      
+      gstate.SCORING:
+        faders.frame = 0;
+        alnum = showscore.alnum;
+        
+        if ( showscore.done ) gstate.d = gstate.IDLE;
+    }
+  }
+}

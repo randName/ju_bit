@@ -8,6 +8,7 @@ module scoreboard #(
     input scores [BUTTONS][WIDTH],
     input note [BUTTONS][2],
     input hit [BUTTONS][2],
+    output comborec [MAXNT],
     output combo [MAXNT],
     output notec [MAXNT],
     output score [$pow(2,WIDTH)][MAXNT]
@@ -25,11 +26,14 @@ module scoreboard #(
   always {
     score = sc.q;
     notec = notes.q;
-    combo = maxcombo.q;
+    comborec = maxcombo.q;
+    combo = 0;
     
     // new combo record
     if ( comboc.q > maxcombo.q ) {
       maxcombo.d = comboc.q;
+    } else if ( comboc.q > 4 ) {
+      combo = comboc.q;
     }
     
     for (i = 0; i < BUTTONS; i++) {

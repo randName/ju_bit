@@ -16,6 +16,7 @@ module rom_template #(
     case ( step ) {
       default: done = 0; frame = 0;
     }
+    done = 1;
     note = n;
   }
 }
