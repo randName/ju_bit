@@ -37,15 +37,14 @@ module game #(
       light lights [BUTTONS];
       scorer scorers [BUTTONS];
       idler idle (#BUTTONS(BUTTONS));
+      .choice(songsel.q) {
+        rom_select song;
+        rom_select songlight (.step(dur.step));
+      }
     }
   }
   
   //fourteenseg segdisp [16] (.dot(0));
-  
-  .choice(songsel.q) {
-    rom_select song;
-    rom_select songlight (.step(dur.step));
-  }
   
   always {
     ts = 0;

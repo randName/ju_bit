@@ -1,0 +1,133 @@
+module i2c_mini #(
+    CLK_DIV = 8 : CLK_DIV >= 3 // divide clock by 2^CLK_DIV, must be 3 or more
+  )(
+    input clk,          // clock
+    input rst,          // reset
+    
+    // Device interface
+    inout sda,          // bi-directional
+    output scl,         // data clock
+    
+    // Control signals
+    input cmd [2],
+    input data_in [8],   // data to write
+    output ack_write,   // was the last write acknowledged (1 = ack, 0 = no_ack)
+    
+    // Status
+    output busy         // I2C is busy (1 = busy, 0 = idle)
+  ) {
+  
+  .clk(clk){
+    .rst(rst) {
+      fsm state = {IDLE, START, WAIT_CMD, WRITE, STOP, WAIT} ;
+    }
+    dff data[8];          // data to send or data received
+    dff scl_reg[CLK_DIV]; // clock divider
+    dff bit_ctr[4];       // bit counter
+  }
+  
+  sig sda_value;
+  
+  always {
+    // the clock is the MSB of scl_reg inverted
+    scl = ~scl_reg.q[CLK_DIV - 1];
+    
+    // we are busy if we aren't idle or waiting for a command
+    busy = state.q != state.IDLE && state.q != state.WAIT_CMD;
+    
+    // defaults
+    ack_write = 0;
+    sda_value = 1; // default to floating pin
+    
+    case (state.q) {
+      // Start here
+      state.IDLE:
+        scl_reg.d = 0;  // reset clock counter (clock goes high)
+        if ( cmd == 1 ) state.d = state.START;
+      
+      // Send start command
+      state.START:
+        scl_reg.d = scl_reg.q + 1; // increment the counter
+        
+        // if the clock counter is less than 1/4 full or more than 3/4 full
+        sda_value = (scl_reg.q < c{2b01, (scl_reg.WIDTH-2)x{1b0}} || scl_reg.q > c{2b11, (scl_reg.WIDTH-2)x{1b0}});
+        
+        // if the clock counter is 3/4 full
+        if (scl_reg.q == c{2b11, (scl_reg.WIDTH-2)x{1b0}})
+          state.d = state.WAIT_CMD; // enter wait command state
+      
+      // Wait for read or write command
+      state.WAIT_CMD:
+        bit_ctr.d = 0; // reset bit counter
+        
+        // set clock counter to just over half full
+        scl_reg.d = c{1b1, (scl_reg.WIDTH-1)x{1b0}} + 1;
+        
+        case ( cmd ) {
+          3:
+            data.d = data_in; // save the data to send
+            scl_reg.d = c{2b11, (scl_reg.WIDTH-2)x{1b0}} + 1;
+            state.d = state.WRITE; // enter write state
+          2:
+            state.d = state.STOP;      // enter stop state
+          1:
+            state.d = state.START;     // enter start state
+            scl_reg.d = c{2b11, (scl_reg.WIDTH-2)x{1b0}} + 1;
+        }
+      
+      // Write a byte
+      state.WRITE:
+        // if we aren't on the acknowledge bit
+        if (bit_ctr.q != 8)
+          sda_value = data.q[7]; // write the MSB of data
+        
+        // otherwise, if the clock counter is 0
+        else if (scl_reg.q == 0)
+          ack_write = ~sda.read; // read the acknowledge bit
+
+        scl_reg.d = scl_reg.q + 1;
+        
+        // if the clock counter is 3/4 full
+        if (scl_reg.q ==  c{2b11, (scl_reg.WIDTH-2)x{1b0}}) {
+          data.d = c{data.q[6:0], 1bx};
+          bit_ctr.d = bit_ctr.q + 1;
+          
+          // wait for the next command if we're on the last bit
+          if (bit_ctr.q == 8) state.d = state.WAIT_CMD;
+        }
+      
+      // Send stop command
+      state.STOP:
+        sda_value = 0;
+        scl_reg.d = scl_reg.q + 1; // increment the clock counter
+        
+        // if the clock counter is just under half full
+        // We don't want it to reach 1/2 full because
+        // the clock output would then go low
+        if (scl_reg.q == (scl_reg.WIDTH-1)x{1b1}) {
+          sda_value = 1;        // set the output high
+          state.d = state.WAIT; // enter wait state
+          scl_reg.d = 0;        // reset clock counter
+        }
+      
+      // Wait 1/2 a clock period
+      state.WAIT:
+        scl_reg.d = scl_reg.q + 1; // increment the clock counter
+        
+        // if the clock counter is just under half full
+        // We don't want it to reach 1/2 full because
+        // the clock output would then go low
+        if (scl_reg.q == (scl_reg.WIDTH-1)x{1b1}){
+          state.d = state.IDLE; // enter idle state
+          scl_reg.d = 0;        // reset clock counter
+        }
+      
+      // Should never enter here
+      default:
+        state.d = state.IDLE; // reset to idle if we do
+    }
+    
+    sda.enable = sda_value == 0; // only drive 0's
+    sda.write = 0;               // only pull down
+  }
+}
