@@ -1,0 +1,22 @@
+module rom_template #(
+    TIMEW = 20 : TIMEW > 10,
+    BUTTONS = 16 : BUTTONS > 0,
+    CHANNELS = 4 : CHANNELS > 0
+  ) (
+    input step [TIMEW],
+    output done,
+    output frame [BUTTONS],
+    output note [CHANNELS][8]
+  ) {
+  
+  sig n [CHANNELS][8];
+  
+  always {
+    n = CHANNELSx{{8hff}};
+    case ( step ) {
+      default: done = 0; frame = 0;
+    }
+    done = 1;
+    note = n;
+  }
+}

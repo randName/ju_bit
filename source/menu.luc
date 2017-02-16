@@ -1,0 +1,72 @@
+module menu #(
+    BUTTONS = 16 : BUTTONS > 0,
+    SCROLL = 8 : SCROLL > 0,
+    COLORS = 3 : COLORS > 0,
+    SONGS =  12 : SONGS > 0,
+    WIDTH  = 4 : WIDTH > 0
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    input ok,
+    input choice [SONGS],
+    output done,
+    output timeout,
+    output ts [16],
+    output song [$clog2(SONGS)],
+    output alnum [16][15],
+    output lights [BUTTONS][COLORS*WIDTH]
+  ) {
+  
+  //const CHOOSE = $reverse("Choose song");
+  
+  .clk(clk), .rst(rst) {
+    dff selected;
+    dff songsel [$clog2(SONGS)];
+    millis_counter dur;
+    //scroller scroll (#VISIBLE(SCROLL), #WIDTH(CHOOSE.WIDTH[0]), .string(CHOOSE));
+    counter f (#SIZE(5), #DIV(20));
+  }
+  
+  //scroller title (#VISIBLE(SCROLL), #WIDTH(16), .clk(clk));
+  //fourteenseg characters [SCROLL] (.dot(0), .num(4hf));
+  encoder e (#WIDTH(SONGS), .in(choice));
+  
+  sig countdown [16];
+
+  always {
+    song = songsel.q;
+    countdown = 16d10000 - dur.step;
+    timeout = countdown <= 0 ;
+    done = selected.q & ( ok | countdown <= 0 );
+    ts = countdown;
+    //title.rst = rst;
+    
+    lights = BUTTONSx{{12h000}};
+    alnum = 16x{{15h0}};
+    
+    if ( |choice ) {
+      selected.d = 1;
+      songsel.d = e.out;
+      //title.rst = 1;
+    }
+    
+    if ( selected.q ) {
+      lights[songsel.q+4] = 3x{f.value[3:0]^(4x{f.value[4]})};
+      lights[0][WIDTH+:WIDTH] = f.value[3:0]^(4x{f.value[4]});
+      /*
+      case ( songsel.q ) {
+        //3: title.string = $reverse("            ????");
+        //2: title.string = $reverse(" doraemon no uta");
+        //1: title.string = $reverse("      butter-fly");
+        //0: title.string = $reverse("     korobeiniki");
+        default: title.string = "????????????????";
+      }
+      */
+      //characters.char = title.chars;
+      //alnum[15:8] = characters.segs;
+    } else {
+      //characters.char = scroll.chars;
+      //alnum[7:0] = characters.segs;
+    }
+  }
+}

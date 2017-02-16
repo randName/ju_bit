@@ -11,6 +11,8 @@ module mojo_top (
     input avr_tx,           // AVR TX (FPGA RX)
     output avr_rx,          // AVR RX (FPGA TX)
     input avr_rx_busy,      // AVR RX buffer full
+    output audio [2],       // audio
+    inout sda,              // i2c data
     output io_led [3][8],   // LEDs on IO Shield
     output io_seg [8],      // 7-segment LEDs on IO Shield
     output io_sel [4],      // Digit select on IO Shield
@@ -19,19 +21,26 @@ module mojo_top (
   ) {
   
   sig rst;                  // reset signal
+  const BUTTONS = 16;
   
   .clk(clk) {
     // The reset conditioner is used to synchronize the reset signal to the FPGA
     // clock. This ensures the entire FPGA comes out of reset at the same time.
     reset_conditioner reset_cond;
     .rst(rst) {
-      //game game;
-      test_alu8 tester(.auto(c{io_dip[2][7], io_button[1]}), .opi(io_dip[2][5:0]), .inp(io_dip[1:0]));
-      opcode_display op_dis (.good(tester.g), .ds(c{tester.correct,7b0}), .op(tester.op));
+      i2c_mini i2c (.sda(sda));
+      game game (#BUTTONS(BUTTONS), .toffset(io_dip[2][7:4]));
+      lightgrid grid (#LIGHTS(BUTTONS));
+      counter seg_sel (#SIZE(2), #DIV(18));
+      led_alnum alnum (.ack(i2c.ack_write), .busy(i2c.busy));
+      .notetype(io_dip[2][3:0]) { sound chan_l; sound chan_r; }
     }
+    bin_to_dec ctr (#DIGITS(6), .value(game.ts));
+    //bin_to_dec combo (#DIGITS(3));
   }
   
-  alu8 alu(.op(tester.op), .a(tester.in[1]), .b(tester.in[0]));
+  fourteenseg chars [16] (.dot(0));
+  sevenseg timestep [4];
   
   always {
     reset_cond.in = ~rst_n; // input raw inverted reset signal
@@ -46,17 +55,46 @@ module mojo_top (
     io_seg = 8hff;          // turn segments off
     io_sel = 4hf;           // select no digits
 
-    // ALU Test
-    tester.out = alu.c;
-    io_seg = op_dis.seg;
-    io_sel = op_dis.sel;
-    led = c{alu.z,alu.v,alu.n,5b0};
-    io_led = {tester.in[1], tester.in[0], alu.c};
+    audio = 0;
+    i2c.cmd = 0;
+    i2c.data_in = 8x{bz};
     
-    // Game
-    //game.butts[7:2] = io_dip[0][7:2];
-    //game.butts[1:0] = io_button[1:0];
-    //led = game.ts;
-    //io_led[2:1] = {game.leds[15:8], game.leds[7:0]};
+    // game input
+    game.butts = c{io_dip[1],io_dip[0]};
+    
+    // game output
+    grid.vals = game.display;
+    //combo.value = game.combo;
+    alnum.segments = game.alnum;
+    chan_l.notes = game.audio[1:0];
+    chan_r.notes = game.audio[3:2];
+    
+    // hardware modules
+    timestep.dot = 4h2;
+    timestep.char = ctr.digits[5:2];
+    chars.num = 16x{{4hf}};
+    chars.char = 16x{{8h0}};
+
+    i2c.cmd = alnum.cmd;
+    i2c.data_in = alnum.data;
+    
+    
+    case ( game.state ) {
+      3:
+        //chars.num[2:0] = combo.digits;
+        //chars.char[7:3] = $reverse("Cmbo:");
+        alnum.segments[7:0] = chars.segs[7:0];
+    }
+
+    // output    
+    led[3:0] = 4h1<<grid.bsel;
+    io_led[0] = c{grid.pulse[1], grid.pulse[0]};
+    io_led[1][3:0] = grid.pulse[2];
+    //io_led[2] = game.debug;
+    io_led[2][4] = 1;
+    io_led[2][6] = i2c.scl;
+    io_sel = ~(4h1<<seg_sel.value);
+    io_seg = ~timestep.segs[seg_sel.value];
+    audio = c{chan_l.pulse, chan_r.pulse};
   }
 }

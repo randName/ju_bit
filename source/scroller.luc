@@ -1,0 +1,32 @@
+module scroller #(
+    VISIBLE = 4 : VISIBLE > 0,
+    WIDTH   = 8 : WIDTH > 0,
+    SPD    = 15 : SPD > 10
+  )(
+    input clk,  // clock
+    input rst,  // reset
+    input string [WIDTH][8],
+    output chars [VISIBLE][8]
+  ) {
+  
+  const BUF = WIDTH + VISIBLE;
+  
+  .clk(clk), .rst(rst) {
+    dff r, charh [BUF][8];
+    timer shiftc (#SPD(SPD));
+  }
+  
+  always {
+    chars = charh.q[WIDTH-1-:VISIBLE];
+    
+    if ( ~r.q ) {
+      charh.d[0+:WIDTH] = string;
+      r.d = 1;
+    }
+    
+    if ( shiftc.out ) {
+      charh.d[BUF-2:0] = charh.q[BUF-1:1];
+      charh.d[BUF-1] = charh.q[0];
+    }
+  }
+}

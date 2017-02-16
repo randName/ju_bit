@@ -1,18 +1,24 @@
 module led_alnum #(
+    ADDRESS = 8hE0,
+    MODULES = 4 : MODULES > 0,
     CHARS = 4 : CHARS > 0
   )(
     input clk,  // clock
     input rst,  // reset
-    input iok,
-    input segments [CHARS][15],
+    input ack,
+    input busy,
+    input segments [MODULES*CHARS][15],
+    output sel [3],
     output cmd [2],
     output data [8]
   ) {
   
   .clk(clk), .rst(rst) {
-    dff w, ptr [4], d [CHARS][15];
+    dff setup, offset [3];
+    dff w, ptr [3], d [MODULES*CHARS][15];
+    dff blink [2], bright [4];
     fsm state = {INIT, ADDR, CMD, WRITE, IDLE};
-    fsm command = {NONE, OSCIL, BLINK, BRIGHT};    
+    fsm command = {NONE, OSCIL, BLINK, BRIGHT};
   }
   
   sig segs [15];
@@ -20,42 +26,20 @@ module led_alnum #(
   always {
     cmd = 0;
     data = bzzzzzzzz;
-
+    sel = offset.q;
+    
     case ( state.q ) {
-      state.INIT:   
+      state.INIT:
         cmd = 1;
+        bright.d = 4hf;
         state.d = state.ADDR;
-        command.d = command.OSCIL;     
-       
-      state.CMD:
-        cmd = 3;
-        case ( command.q ) {
-          command.OSCIL:
-            data = 8h21;
-          command.BLINK:
-            data = 8h81;
-          command.BRIGHT:
-            data = 8he0 | 8hf;
-        }
-        if ( iok ) {
-          cmd = 2;
-          case ( command.q ) {
-            command.OSCIL:
-              command.d = command.BLINK;
-            command.BLINK:
-              command.d = command.BRIGHT;
-            command.BRIGHT:
-              command.d = command.NONE;
-            default:
-              command.d = command.NONE;
-          }
-          state.d = state.IDLE;
-        }
-        
+        command.d = command.OSCIL;
+      
       state.ADDR:
         cmd = 3;
-        data = 8he0;
-        if ( iok ) {
+        data = ADDRESS | c{offset.q,1b0};
+        
+        if ( ack ) {
           if ( command.q == command.NONE ) {
             state.d = state.WRITE;
             w.d = 1;
@@ -64,11 +48,32 @@ module led_alnum #(
           }
         }
       
+      state.CMD:
+        cmd = 3;
+        case ( command.q ) {
+          command.OSCIL:
+            data = 8h21;
+          command.BLINK:
+            data = c{5h10,blink.q,1b1};
+          command.BRIGHT:
+            data = c{4he,bright.q};
+        }
+        
+        if ( ack ) {
+          cmd = 2;
+          command.d = command.NONE;
+          state.d = state.IDLE;
+          if ( command.q == command.OSCIL ) {
+            command.d = command.BLINK;
+          }
+        }
+      
       state.WRITE:
         cmd = 3;
-        data = 8h0;
-        if ( ~ptr.q[3] & ~w.q ) {
-          segs = d.q[ptr.q[2:1]];
+        if ( w.q ) {
+          data = 8h0;
+        } else {
+          segs = d.q[offset.q*CHARS+ptr.q[2:1]];
           if ( ptr.q[0] ) {
             data = segs[14:8];
           } else {
@@ -76,7 +81,7 @@ module led_alnum #(
           }
         }
         
-        if ( iok ) {
+        if ( ack ) {
           if ( w.q ) {
             w.d = 0;
           } else {
@@ -87,11 +92,26 @@ module led_alnum #(
             state.d = state.IDLE;
           }
         }
-
+      
       default:
-        d.d = segments;
-        cmd = 1;
-        state.d = state.ADDR;
+        if ( ~busy ) {
+          if ( ~setup.q ) {
+            if ( command.q == command.BLINK ) {
+              cmd = 1;
+              state.d = state.ADDR;
+              if ( offset.q == MODULES-1 ) setup.d = setup.q + 1;
+            } else {
+              offset.d = offset.q + 1;
+              state.d = state.INIT;
+            }
+          } else {
+            d.d = segments;
+            cmd = 1;
+            state.d = state.ADDR;
+            offset.d = offset.q + 1;
+            if ( offset.q == MODULES-1 ) offset.d = 0;
+          }
+        }
     }
   }
 }
